@@ -60,8 +60,11 @@ public class Principal {
         if (libroBuscado.isPresent()){
             System.out.println("------LIBRO------");
             System.out.println("Titulo: "+libroBuscado.get().titulo());
-            System.out.println("Autor: "+libroBuscado.get().autor());
-            System.out.println("Idioma: "+libroBuscado.get().idiomas().get(0));
+            System.out.println("Autor: "+libroBuscado.get().autor().stream()
+                    .map(DatosAutor::nombre)
+                    .collect(Collectors.joining(", ")));
+            System.out.println("Idioma: "+libroBuscado.get().idiomas().stream()
+                    .collect(Collectors.joining(", ")));
             System.out.println("Numero de descargs: "+libroBuscado.get().numeroDeDescargas()+
                     "\n-----------------");
         }else {
