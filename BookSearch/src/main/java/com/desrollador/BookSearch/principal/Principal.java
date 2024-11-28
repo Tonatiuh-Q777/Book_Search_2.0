@@ -1,11 +1,13 @@
 package com.desrollador.BookSearch.principal;
 
 import com.desrollador.BookSearch.model.Datos;
+import com.desrollador.BookSearch.model.DatosAutor;
 import com.desrollador.BookSearch.model.DatosLibros;
 import com.desrollador.BookSearch.service.ConsumoAPI;
 import com.desrollador.BookSearch.service.ConvierteDatos;
 
 import javax.sound.midi.Soundbank;
+import javax.swing.*;
 import java.util.Comparator;
 import java.util.DoubleSummaryStatistics;
 import java.util.Optional;
@@ -17,20 +19,35 @@ public class Principal {
     private Scanner teclado = new Scanner(System.in);
     private ConsumoAPI consumoAPI = new ConsumoAPI();
     private ConvierteDatos conversor = new ConvierteDatos();
+    String menu = """
+            ------------------------
+            Elija un opcion de por medio de su numero:
+            1- Buscar un libro por titulo
+            2- Listar libros registrasdos 
+            3- Listar autores registrados
+            4- Listar autores vivos en un determinado año
+            5- Listar libros por idioma
+            0- Salir
+            """;
 
     public void muestraElMenu(){
-        var json = consumoAPI.obtenerDatos(URL_BASE);
-        System.out.println(json);
-        var datos = conversor.obtenerDatos(json, Datos.class);
-        System.out.println(datos);
+        int opcion=-1;
+        while (opcion!=0){
+            System.out.println(menu);
+            opcion= teclado.nextInt();
+            teclado.nextLine();
 
-        //Top 10 libros mas descargados
-        System.out.println("Top 10 libros mas descargados");
-        datos.resultados().stream()
-                .sorted(Comparator.comparing(DatosLibros::numeroDeDescargas).reversed())
-                .limit(10)
-                .map(l -> l.titulo().toUpperCase())
-                .forEach(System.out::println);
+         switch (opcion){
+             case 1:
+                 System.out.println("Cargando...");
+                 buscarLibros();
+                 break;
+         }
+        }System.exit(0);
+    }
+    public void buscarLibros(){
+        var json = consumoAPI.obtenerDatos(URL_BASE);//System.out.println(json);
+        var datos = conversor.obtenerDatos(json, Datos.class);//System.out.println(datos);
 
         //Busqueda de libros por nombre
         System.out.println("Ingrese el nombre que desea buscar: ");
@@ -41,20 +58,14 @@ public class Principal {
                 .filter(l -> l.titulo().toUpperCase().contains(tituloLibro.toUpperCase()))
                 .findFirst();
         if (libroBuscado.isPresent()){
-            System.out.println("Libro encontrado: ");
-            System.out.println(libroBuscado.get());
+            System.out.println("------LIBRO------");
+            System.out.println("Titulo: "+libroBuscado.get().titulo());
+            System.out.println("Autor: "+libroBuscado.get().autor());
+            System.out.println("Idioma: "+libroBuscado.get().idiomas().get(0));
+            System.out.println("Numero de descargs: "+libroBuscado.get().numeroDeDescargas()+
+                    "\n-----------------");
         }else {
             System.out.println("LIBRO NO ENCONTRADO");
         }
-
-        //Trabajando con estadisticas
-        DoubleSummaryStatistics est = datos.resultados().stream()
-                .filter(d -> d.numeroDeDescargas() > 0)
-                .collect(Collectors.summarizingDouble(DatosLibros::numeroDeDescargas));
-        System.out.println("Cantidad minima de descargas: "+est.getAverage());
-        System.out.println("Cantidad maxima de descargas: "+est.getMax());
-        System.out.println("Cantidad minima de descargas: "+est.getMin());
-        System.out.println("Cantidad de registros evaluados para calcular las estadisticas: "+est.getCount());
-
     }
 }
