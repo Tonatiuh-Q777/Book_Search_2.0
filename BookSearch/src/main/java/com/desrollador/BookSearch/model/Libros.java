@@ -13,7 +13,7 @@ public class Libros {
     private String titulo;
     private Double numeroDeDescargas;
     private List<String> idiomas;
-    @OneToMany(mappedBy = "libros", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "libros", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<Autores> autor = new ArrayList<>();
 
     public Libros(){}

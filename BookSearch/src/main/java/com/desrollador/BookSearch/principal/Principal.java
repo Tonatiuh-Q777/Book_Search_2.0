@@ -4,6 +4,7 @@ import com.desrollador.BookSearch.model.*;
 import com.desrollador.BookSearch.repository.LibrosRepository;
 import com.desrollador.BookSearch.service.ConsumoAPI;
 import com.desrollador.BookSearch.service.ConvierteDatos;
+import jakarta.transaction.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -15,6 +16,7 @@ public class Principal {
     private ConvierteDatos conversor = new ConvierteDatos();
     private LibrosRepository repositorio;
     private List<Libros> libros;
+
     String menu = """
             ------------------------
             Elija un opcion de por medio de su numero:
@@ -45,6 +47,9 @@ public class Principal {
              case 2:
                  mostrarLibrosRegistrados();
                  break;
+             case 3:
+                 mostrarAutores();
+                 break;
              default:
                  System.out.println("Opción invalida");
                  break;
@@ -63,24 +68,14 @@ public class Principal {
                 .findFirst();
 
         if (libroBuscado.isPresent()){
-//            Libros libroNuevo = new Libros();
-//            libroNuevo.setTitulo(libroBuscado.get().titulo());
-//            libroNuevo.setNumeroDeDescargas(libroBuscado.get().numeroDeDescargas());
-//            libroNuevo.setIdiomas(libroBuscado.get().idiomas());
-//
             List<DatosAutor> listaAutores = libroBuscado
                     .map(DatosLibros::autor)
                             .orElse(Collections.emptyList());
-//            System.out.println("La lista es: "+listaAutores);
-//            libroNuevo.setAutor(listaAutores);
-//            repositorio.save(libroNuevo);
-
             Libros libroNuevo = new Libros();
             libroNuevo.setTitulo(libroBuscado.get().titulo());
             libroNuevo.setIdiomas(libroBuscado.get().idiomas());
             libroNuevo.setNumeroDeDescargas(libroBuscado.get().numeroDeDescargas());
 
-            // Transformar DatosAutor a Autores
             List<Autores> autoresEntidad = listaAutores.stream()
                     .map(datoAutor -> {
                         Autores autor = new Autores();
@@ -90,31 +85,45 @@ public class Principal {
                         return autor;
                     })
                     .collect(Collectors.toList());
-
-            // Asignar autores al libro y guardar
             libroNuevo.setAutor(autoresEntidad);
             repositorio.save(libroNuevo);
 
-
-
-
-            System.out.println("------LIBRO------");
-            System.out.println("Titulo: "+libroBuscado.get().titulo());
-            System.out.println("Autor: "+libroBuscado.get().autor().stream()
+            System.out.println("------LIBRO------" +
+                    "\nTitulo: " + libroBuscado.get().titulo() +
+                    "\nAutor: " + libroBuscado.get().autor().stream()
                     .map(DatosAutor::nombre)
-                    .collect(Collectors.joining(", ")));
-            System.out.println("Idioma: "+libroBuscado.get().idiomas().stream()
-                    .collect(Collectors.joining(", ")));
-            System.out.println("Numero de descargs: "+libroBuscado.get().numeroDeDescargas()+
+                    .collect(Collectors.joining(", ")) +
+                    "\nIdioma: " + libroBuscado.get().idiomas().stream()
+                    .collect(Collectors.joining(", ")) +
+                    "\nNumero de descargas: " + libroBuscado.get().numeroDeDescargas() +
                     "\n-----------------");
         }else {
             System.out.println("LIBRO NO ENCONTRADO");
         }
     }
-    private void mostrarLibrosRegistrados(){
+    private void mostrarLibrosRegistrados() {
         libros = repositorio.findAll();
-        libros.stream()
-                .sorted(Comparator.comparing(Libros::getTitulo))
-                .forEach(System.out::println);
+        libros.forEach(l -> System.out.println("------LIBRO------\n" +
+                "Titulo: " + l.getTitulo() +
+                "\nAutor: " + l.getAutor().stream().map(Autores::getNombre)
+                .collect(Collectors.joining(", ")) +
+                "\nIdiomas: " + String.join(", ", l.getIdiomas()) +
+                "\nTotal descargas: " + l.getNumeroDeDescargas() +
+                "\n-----------------"
+        ));
+    }
+
+    private void mostrarAutores(){
+        System.out.println("digite un autor para su busqueda");
+        var nombreAutor = teclado.nextLine();
+        Optional<Libros> autorBuscado = repositorio.findByAutorNombreContainsIgnoreCase(nombreAutor);
+
+        if (autorBuscado.isPresent()){
+            System.out.println("el autor buscado es: " + autorBuscado.get().getAutor().stream().map(Autores::getNombre).collect(Collectors.joining(", ")));
+        }else
+        {
+            System.out.println("autor no encontrado");
+
+        }
     }
 }
