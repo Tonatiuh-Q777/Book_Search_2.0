@@ -1,15 +1,21 @@
 package com.desrollador.BookSearch.repository;
 
-import com.desrollador.BookSearch.model.Autores;
 import com.desrollador.BookSearch.model.Libros;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+
 import java.util.List;
-import java.util.Optional;
 
 public interface LibrosRepository extends JpaRepository<Libros,Long> {
 
-    Optional<Libros> findByAutorNombreContainsIgnoreCase(String nombreAutor);
+    List<Libros> findByAutorIdGreaterThan(int i);
+
+    List<Libros> findByAutorFechaDeFallecimientoGreaterThanEqualAndAutorFechaDeNacimientoLessThanEqual(String anio, String anio2);
+
+    @Query(value = "SELECT * FROM libros WHERE :idioma = ANY(idiomas)", nativeQuery = true)
+    List<Libros> findByIdioma(String idioma);
+
+    boolean existsByTitulo(String titulo);
 
 }

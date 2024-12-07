@@ -41,7 +41,6 @@ public class Principal {
 
          switch (opcion){
              case 1:
-                 System.out.println("Cargando...");
                  buscarLibros();
                  break;
              case 2:
@@ -50,12 +49,20 @@ public class Principal {
              case 3:
                  mostrarAutores();
                  break;
+             case 4:
+                 mostrarAutoresVivos();
+                 break;
+             case 5:
+                 mostrarLibrosPorIdioma();
+                 break;
+             case 0:
+                 System.out.println("Cerrando la aplicación...");
+                 break;
              default:
                  System.out.println("Opción invalida");
                  break;
          }
         }
-        System.out.println("Cerrando la aplicación...");
         System.exit(0);
     }
     private void buscarLibros(){
@@ -66,8 +73,13 @@ public class Principal {
         Optional<DatosLibros> libroBuscado = datosBusqueda.resultados().stream()
                 .filter(l -> l.titulo().toUpperCase().contains(tituloLibro.toUpperCase()))
                 .findFirst();
-
         if (libroBuscado.isPresent()){
+
+            boolean libroYaExiste = repositorio.existsByTitulo(libroBuscado.get().titulo());
+            if (libroYaExiste){
+                System.out.println("ESTE LIBRO YA FUE REGISTRADO");
+                return;
+            }
             List<DatosAutor> listaAutores = libroBuscado
                     .map(DatosLibros::autor)
                             .orElse(Collections.emptyList());
@@ -75,7 +87,6 @@ public class Principal {
             libroNuevo.setTitulo(libroBuscado.get().titulo());
             libroNuevo.setIdiomas(libroBuscado.get().idiomas());
             libroNuevo.setNumeroDeDescargas(libroBuscado.get().numeroDeDescargas());
-
             List<Autores> autoresEntidad = listaAutores.stream()
                     .map(datoAutor -> {
                         Autores autor = new Autores();
@@ -114,16 +125,51 @@ public class Principal {
     }
 
     private void mostrarAutores(){
-        System.out.println("digite un autor para su busqueda");
-        var nombreAutor = teclado.nextLine();
-        Optional<Libros> autorBuscado = repositorio.findByAutorNombreContainsIgnoreCase(nombreAutor);
+        libros = repositorio.findByAutorIdGreaterThan(0);
+        libros.forEach(l -> System.out.println("-----------------" +
+                "\nAutor: " + l.getAutor().stream().map(Autores::getNombre)
+                .collect(Collectors.joining(", "))+
+                "\nFecha Nacimiento: "+l.getAutor().stream().map(Autores::getFechaDeNacimiento).collect(Collectors.joining())+
+                "\nFecha Fallecimiento: "+l.getAutor().stream().map(Autores::getFechaDeFallecimiento).collect(Collectors.joining())+
+                "\nTitulos: " + l.getTitulo()+
+                "\n-----------------\n"
+        ));
+    }
+    @Transactional
+    private void mostrarAutoresVivos(){
+        System.out.println("Digite el año que desea buscar en el cual un autor estaba vivo: ");
+        var anio = teclado.nextLine();
+        var anio2=anio;
+        libros = repositorio.findByAutorFechaDeFallecimientoGreaterThanEqualAndAutorFechaDeNacimientoLessThanEqual(anio,anio2);
+        libros.forEach(l -> System.out.println("-----------------" +
+                "\nAutor: " + l.getAutor().stream().map(Autores::getNombre)
+                .collect(Collectors.joining(", ")) +
+                "\nFecha Nacimiento: " + l.getAutor().stream().map(Autores::getFechaDeNacimiento).collect(Collectors.joining()) +
+                "\nFecha Fallecimiento: " + l.getAutor().stream().map(Autores::getFechaDeFallecimiento).collect(Collectors.joining()) +
+                "\nTitulos: " + l.getTitulo() +
+                "\n-----------------\n"
+        ));
+    }
+    private void mostrarLibrosPorIdioma(){
+        System.out.println("Digite el codigo del idioma que desea buscar los libros:\n" +
+                "Ejemplo \n" +
+                "es-Español\n" +
+                "en-Ingles\n" +
+                "pr-Portugues\n");
 
-        if (autorBuscado.isPresent()){
-            System.out.println("el autor buscado es: " + autorBuscado.get().getAutor().stream().map(Autores::getNombre).collect(Collectors.joining(", ")));
-        }else
-        {
-            System.out.println("autor no encontrado");
-
+        var idiomaSelecto = teclado.nextLine();
+        libros = repositorio.findByIdioma(idiomaSelecto);
+        if (libros.isEmpty()){
+            System.out.println("No hay libros encontrados con ese idioma");
+        }else {
+            libros.forEach(l -> System.out.println("------LIBRO------\n" +
+                    "Titulo: " + l.getTitulo() +
+                    "\nAutor: " + l.getAutor().stream().map(Autores::getNombre)
+                    .collect(Collectors.joining(", ")) +
+                    "\nIdiomas: " + String.join(", ", l.getIdiomas()) +
+                    "\nTotal descargas: " + l.getNumeroDeDescargas() +
+                    "\n-----------------"
+            ));
         }
     }
 }
