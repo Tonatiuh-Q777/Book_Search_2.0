@@ -74,7 +74,6 @@ public class Principal {
                 .filter(l -> l.titulo().toUpperCase().contains(tituloLibro.toUpperCase()))
                 .findFirst();
         if (libroBuscado.isPresent()){
-
             boolean libroYaExiste = repositorio.existsByTitulo(libroBuscado.get().titulo());
             if (libroYaExiste){
                 System.out.println("ESTE LIBRO YA FUE REGISTRADO");
@@ -126,14 +125,30 @@ public class Principal {
 
     private void mostrarAutores(){
         libros = repositorio.findByAutorIdGreaterThan(0);
-        libros.forEach(l -> System.out.println("-----------------" +
-                "\nAutor: " + l.getAutor().stream().map(Autores::getNombre)
-                .collect(Collectors.joining(", "))+
-                "\nFecha Nacimiento: "+l.getAutor().stream().map(Autores::getFechaDeNacimiento).collect(Collectors.joining())+
-                "\nFecha Fallecimiento: "+l.getAutor().stream().map(Autores::getFechaDeFallecimiento).collect(Collectors.joining())+
-                "\nTitulos: " + l.getTitulo()+
-                "\n-----------------\n"
-        ));
+        Map<String, List<Libros>> autoresLibrosMap = libros.stream()
+                .flatMap(libro -> libro.getAutor().stream()
+                        .map(autor -> new AbstractMap.SimpleEntry<>(autor.getNombre(), libro)))
+                .collect(Collectors.groupingBy(Map.Entry::getKey,
+                        Collectors.mapping(Map.Entry::getValue, Collectors.toList())));
+
+        autoresLibrosMap.forEach((nombreAutor, librosDeAutor) -> {
+            Optional<Autores> autorRelacionado = librosDeAutor.stream()
+                    .flatMap(libro -> libro.getAutor().stream())
+                    .filter(autor -> autor.getNombre().equals(nombreAutor))
+                    .findFirst();
+
+            System.out.println("-----------------");
+            autorRelacionado.ifPresent(autor -> {
+                System.out.println("Autor: " + autor.getNombre());
+                System.out.println("Fecha de Nacimiento: " + autor.getFechaDeNacimiento());
+                System.out.println("Fecha de Fallecimiento: " + autor.getFechaDeFallecimiento());
+            });
+            System.out.println("Libros: " + librosDeAutor.stream()
+                    .map(Libros::getTitulo)
+                    .collect(Collectors.joining(", ")));
+            System.out.println("-----------------");
+        });
+
     }
     @Transactional
     private void mostrarAutoresVivos(){
@@ -141,14 +156,30 @@ public class Principal {
         var anio = teclado.nextLine();
         var anio2=anio;
         libros = repositorio.findByAutorFechaDeFallecimientoGreaterThanEqualAndAutorFechaDeNacimientoLessThanEqual(anio,anio2);
-        libros.forEach(l -> System.out.println("-----------------" +
-                "\nAutor: " + l.getAutor().stream().map(Autores::getNombre)
-                .collect(Collectors.joining(", ")) +
-                "\nFecha Nacimiento: " + l.getAutor().stream().map(Autores::getFechaDeNacimiento).collect(Collectors.joining()) +
-                "\nFecha Fallecimiento: " + l.getAutor().stream().map(Autores::getFechaDeFallecimiento).collect(Collectors.joining()) +
-                "\nTitulos: " + l.getTitulo() +
-                "\n-----------------\n"
-        ));
+
+        Map<String, List<Libros>> autoresLibrosMap = libros.stream()
+                .flatMap(libro -> libro.getAutor().stream()
+                        .map(autor -> new AbstractMap.SimpleEntry<>(autor.getNombre(), libro)))
+                .collect(Collectors.groupingBy(Map.Entry::getKey,
+                        Collectors.mapping(Map.Entry::getValue, Collectors.toList())));
+
+        autoresLibrosMap.forEach((nombreAutor, librosDeAutor) -> {
+            Optional<Autores> autorRelacionado = librosDeAutor.stream()
+                    .flatMap(libro -> libro.getAutor().stream())
+                    .filter(autor -> autor.getNombre().equals(nombreAutor))
+                    .findFirst();
+
+            System.out.println("-----------------");
+            autorRelacionado.ifPresent(autor -> {
+                System.out.println("Autor: " + autor.getNombre());
+                System.out.println("Fecha de Nacimiento: " + autor.getFechaDeNacimiento());
+                System.out.println("Fecha de Fallecimiento: " + autor.getFechaDeFallecimiento());
+            });
+            System.out.println("Libros: " + librosDeAutor.stream()
+                    .map(Libros::getTitulo)
+                    .collect(Collectors.joining(", ")));
+            System.out.println("-----------------");
+        });
     }
     private void mostrarLibrosPorIdioma(){
         System.out.println("Digite el codigo del idioma que desea buscar los libros:\n" +

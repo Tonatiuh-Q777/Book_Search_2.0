@@ -8,7 +8,6 @@ public class Autores {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long Id;
-    @Column(unique = true)
     private String nombre;
     private String fechaDeNacimiento;
     private String fechaDeFallecimiento;
@@ -16,7 +15,6 @@ public class Autores {
     private Libros libros;
 
     public Autores(){}
-
 
     public String getNombre() {
         return nombre;
