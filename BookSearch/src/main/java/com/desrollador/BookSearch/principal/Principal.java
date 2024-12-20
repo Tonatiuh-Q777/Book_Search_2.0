@@ -39,32 +39,18 @@ public class Principal {
             opcion= teclado.nextInt();
             teclado.nextLine();
 
-         switch (opcion){
-             case 1:
-                 buscarLibros();
-                 break;
-             case 2:
-                 mostrarLibrosRegistrados();
-                 break;
-             case 3:
-                 mostrarAutores();
-                 break;
-             case 4:
-                 mostrarAutoresVivos();
-                 break;
-             case 5:
-                 mostrarLibrosPorIdioma();
-                 break;
-             case 0:
-                 System.out.println("Cerrando la aplicación...");
-                 break;
-             default:
-                 System.out.println("Opción invalida");
-                 break;
-         }
-        }
-        System.exit(0);
+            switch (opcion){
+                case 1: buscarLibros(); break;
+                case 2: mostrarLibrosRegistrados(); break;
+                case 3: mostrarAutores(); break;
+                case 4: mostrarAutoresVivos(); break;
+                case 5: mostrarLibrosPorIdioma(); break;
+                case 0: System.out.println("Cerrando la aplicación..."); break;
+                default: System.out.println("Opción invalida"); break;
+            }
+        }System.exit(0);
     }
+
     private void buscarLibros(){
         System.out.println("Ingrese el nombre que desea buscar: ");
         var tituloLibro = teclado.nextLine();
@@ -81,7 +67,7 @@ public class Principal {
             }
             List<DatosAutor> listaAutores = libroBuscado
                     .map(DatosLibros::autor)
-                            .orElse(Collections.emptyList());
+                    .orElse(Collections.emptyList());
             Libros libroNuevo = new Libros();
             libroNuevo.setTitulo(libroBuscado.get().titulo());
             libroNuevo.setIdiomas(libroBuscado.get().idiomas());
@@ -111,65 +97,73 @@ public class Principal {
             System.out.println("LIBRO NO ENCONTRADO");
         }
     }
+
     private void mostrarLibrosRegistrados() {
         libros = repositorio.findAll();
-        libros.forEach(l -> System.out.println("------LIBRO------\n" +
-                "Titulo: " + l.getTitulo() +
-                "\nAutor: " + l.getAutor().stream().map(Autores::getNombre)
-                .collect(Collectors.joining(", ")) +
-                "\nIdiomas: " + String.join(", ", l.getIdiomas()) +
-                "\nTotal descargas: " + l.getNumeroDeDescargas() +
-                "\n-----------------"
-        ));
+        libros.forEach(this::imprimirDetallesLibro);
     }
 
     private void mostrarAutores(){
         libros = repositorio.findByAutorIdGreaterThan(0);
-        Map<String, List<Libros>> autoresLibrosMap = libros.stream()
-                .flatMap(libro -> libro.getAutor().stream()
-                        .map(autor -> new AbstractMap.SimpleEntry<>(autor.getNombre(), libro)))
-                .collect(Collectors.groupingBy(Map.Entry::getKey,
-                        Collectors.mapping(Map.Entry::getValue, Collectors.toList())));
-
-        autoresLibrosMap.forEach((nombreAutor, librosDeAutor) -> {
-            Optional<Autores> autorRelacionado = librosDeAutor.stream()
-                    .flatMap(libro -> libro.getAutor().stream())
-                    .filter(autor -> autor.getNombre().equals(nombreAutor))
-                    .findFirst();
-
-            System.out.println("-----------------");
-            autorRelacionado.ifPresent(autor -> {
-                System.out.println("Autor: " + autor.getNombre());
-                System.out.println("Fecha de Nacimiento: " + autor.getFechaDeNacimiento());
-                System.out.println("Fecha de Fallecimiento: " + autor.getFechaDeFallecimiento());
-            });
-            System.out.println("Libros: " + librosDeAutor.stream()
-                    .map(Libros::getTitulo)
-                    .collect(Collectors.joining(", ")));
-            System.out.println("-----------------");
-        });
-
+        Map<String, List<Libros>> autoresLibrosMap = agruparLibrosPorAutor(libros);
+        imprimirDetallesAutores(autoresLibrosMap);
     }
+
     @Transactional
     private void mostrarAutoresVivos(){
         System.out.println("Digite el año que desea buscar en el cual un autor estaba vivo: ");
         var anio = teclado.nextLine();
         var anio2=anio;
         libros = repositorio.findByAutorFechaDeFallecimientoGreaterThanEqualAndAutorFechaDeNacimientoLessThanEqual(anio,anio2);
+        if (libros.isEmpty()){
+            System.out.println("No hay ningún registro de ese año en la base de datos");
+        }else {
+            Map<String, List<Libros>> autoresLibrosMap = agruparLibrosPorAutor(libros);
+            imprimirDetallesAutores(autoresLibrosMap);
+        }
+    }
 
-        Map<String, List<Libros>> autoresLibrosMap = libros.stream()
+    private void mostrarLibrosPorIdioma(){
+        System.out.println("Digite el codigo del idioma que desea buscar los libros:\n" +
+                "Ejemplo \n" +
+                "es-Español\n" +
+                "en-Ingles\n" +
+                "pr-Portugues\n");
+        var idiomaSelecto = teclado.nextLine();
+        libros = repositorio.findByIdioma(idiomaSelecto);
+        if (libros.isEmpty()){
+            System.out.println("No hay libros encontrados con ese idioma");
+        }else {
+            libros.forEach(this::imprimirDetallesLibro);
+        }
+    }
+
+    private void imprimirDetallesLibro(Libros libro) {
+        System.out.println("\n------LIBRO------");
+        System.out.println("Título: " + libro.getTitulo());
+        System.out.println("Autor: " + libro.getAutor().stream()
+                .map(Autores::getNombre)
+                .collect(Collectors.joining(", ")));
+        System.out.println("Idiomas: " + String.join(", ", libro.getIdiomas()));
+        System.out.println("Total descargas: " + libro.getNumeroDeDescargas());
+        System.out.println("-----------------");
+    }
+
+    private Map<String, List<Libros>> agruparLibrosPorAutor(List<Libros> libros) {
+        return libros.stream()
                 .flatMap(libro -> libro.getAutor().stream()
                         .map(autor -> new AbstractMap.SimpleEntry<>(autor.getNombre(), libro)))
                 .collect(Collectors.groupingBy(Map.Entry::getKey,
                         Collectors.mapping(Map.Entry::getValue, Collectors.toList())));
+    }
 
+    private void imprimirDetallesAutores(Map<String, List<Libros>> autoresLibrosMap) {
         autoresLibrosMap.forEach((nombreAutor, librosDeAutor) -> {
             Optional<Autores> autorRelacionado = librosDeAutor.stream()
                     .flatMap(libro -> libro.getAutor().stream())
                     .filter(autor -> autor.getNombre().equals(nombreAutor))
                     .findFirst();
-
-            System.out.println("-----------------");
+            System.out.println("\n-----------------");
             autorRelacionado.ifPresent(autor -> {
                 System.out.println("Autor: " + autor.getNombre());
                 System.out.println("Fecha de Nacimiento: " + autor.getFechaDeNacimiento());
@@ -178,29 +172,7 @@ public class Principal {
             System.out.println("Libros: " + librosDeAutor.stream()
                     .map(Libros::getTitulo)
                     .collect(Collectors.joining(", ")));
-            System.out.println("-----------------");
+            System.out.println("-----------------\n");
         });
-    }
-    private void mostrarLibrosPorIdioma(){
-        System.out.println("Digite el codigo del idioma que desea buscar los libros:\n" +
-                "Ejemplo \n" +
-                "es-Español\n" +
-                "en-Ingles\n" +
-                "pr-Portugues\n");
-
-        var idiomaSelecto = teclado.nextLine();
-        libros = repositorio.findByIdioma(idiomaSelecto);
-        if (libros.isEmpty()){
-            System.out.println("No hay libros encontrados con ese idioma");
-        }else {
-            libros.forEach(l -> System.out.println("------LIBRO------\n" +
-                    "Titulo: " + l.getTitulo() +
-                    "\nAutor: " + l.getAutor().stream().map(Autores::getNombre)
-                    .collect(Collectors.joining(", ")) +
-                    "\nIdiomas: " + String.join(", ", l.getIdiomas()) +
-                    "\nTotal descargas: " + l.getNumeroDeDescargas() +
-                    "\n-----------------"
-            ));
-        }
     }
 }
